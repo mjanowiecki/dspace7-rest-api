@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 
 header = {'content-type': 'application/json'}
-baseURL = 'https://j10p-clone.library.jhu.edu'
+baseURL = 'https://j10p-stage.library.jhu.edu'
 endpoint = '/server/api/core/collections'
 pagination = '?size=100'
 
