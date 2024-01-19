@@ -52,7 +52,7 @@ def json_to_flat_dict(item):
     return a dict with a flat structure. where a field has multiple values,
     these values are concatenated separated by a pipe character.
     """
-    item_dict = {}
+    item_dict = {"uuid": item["uuid"]}
     for fieldname, field_values in item["metadata"].items():
         str_value = "|".join([i["value"] for i in field_values])
         item_dict[fieldname] = str_value
