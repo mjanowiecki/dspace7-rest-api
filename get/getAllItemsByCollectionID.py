@@ -41,7 +41,19 @@ def get_paginated_data(endpoint, size, timeout):
         r = requests.get(endpoint, timeout=timeout, params={"size": size})
         if r.status_code == 200:
             data = r.json()
+
+            # print "Page X of Y"
+            page_data = data["_embedded"]["searchResult"]["page"]
+            num = page_data["number"] + 1
+            total = page_data["totalPages"]
+            print(f"Page {num} of {total}")
+            # on the last iteration, print total element count
+            if num == total:
+                print(f"Total elements: {page_data['totalElements']}")
+
             yield data
+
+            # get next page
             next_link = data["_embedded"]["searchResult"]["_links"].get("next")
             endpoint = next_link["href"] if next_link else None
 
