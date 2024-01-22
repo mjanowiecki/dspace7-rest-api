@@ -22,7 +22,7 @@ def main():
     all_items = []
     for uuid in collection_uuids:
         endpoint = f"{base_url}/server/api/discover/search/objects?scope={uuid}"
-        for page in get_paginated_data(endpoint, size, timeout):
+        for page in get_paginated_search_results(endpoint, size, timeout):
             results = page["_embedded"]["searchResult"]["_embedded"]["objects"]
             for result in results:
                 item = result["_embedded"]["indexableObject"]
@@ -33,7 +33,7 @@ def main():
     all_items.to_csv("allCollectionItems.csv", index=False)
 
 
-def get_paginated_data(endpoint, size, timeout):
+def get_paginated_search_results(endpoint, size, timeout):
     """generator function for paginated search results
     uses the "next" links within the returned data
     """
