@@ -25,14 +25,17 @@ def main():
     for index, row in df.iterrows():
         print(index, row["handle"])
         # get object data
-        r = requests.get(f"{base_url}/{endpoint}", timeout=timeout, params={"id": row["handle"]})
+        r = requests.get(
+            f"{base_url}/{endpoint}", timeout=timeout, params={"id": row["handle"]}
+        )
         if r.status_code == 200:
             item_dict = json_to_flat_dict(r.json())
             all_items.append(item_dict)
         # TODO: error handling for timeouts and non-200 statuses
 
     all_items = pd.DataFrame.from_dict(all_items)
-    all_items.to_csv('handle_metadata.csv', index=False)
+    all_items.to_csv("handle_metadata.csv", index=False)
+
 
 def json_to_flat_dict(item):
     """
@@ -46,7 +49,6 @@ def json_to_flat_dict(item):
         str_value = "|".join([i["value"] for i in field_values])
         item_dict[fieldname] = str_value
     return item_dict
-
 
 
 if __name__ == "__main__":
