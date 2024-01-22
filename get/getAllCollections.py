@@ -1,43 +1,56 @@
+""" Output a CSV with data for all collections in the DSpace instance.
+    CSV headers: id, uuid, name, handle
+"""
+
 import requests
 import pandas as pd
 
-header = {'content-type': 'application/json'}
-baseURL = 'https://j10p-stage.library.jhu.edu'
-endpoint = '/server/api/core/collections'
-pagination = '?size=100'
+
+def main():
+    base_url = "https://j10p-stage.library.jhu.edu"
+    endpoint = f"{base_url}/server/api/core/collections"
+    timeout = 10
+    size = 100
+
+    all_items = []
+    for page in get_paginated_data(endpoint, size, timeout):
+        for collection in page["_embedded"]["collections"]:
+            coll_dict = {
+                "id": collection["id"],
+                "uuid": collection["uuid"],
+                "name": collection["name"],
+                "handle": collection["handle"]
+            }
+            all_items.append(coll_dict)
+
+    all_items = pd.DataFrame.from_dict(all_items)
+    all_items.to_csv("allCollections.csv", index=False)
 
 
-all_items = []
-more_links = True
-next_list = []
-while more_links:
-    if not next_list:
-        full_link = baseURL+endpoint+pagination
-        r = requests.get(full_link, headers=header).json()
-    else:
-        next_link = next_list[0]
-        r = requests.get(next_link).json()
-    collections = r['_embedded']['collections']
-    for collection in collections:
-        coll_id = collection['id']
-        uuid = collection['uuid']
-        name = collection['name']
-        handle = collection['handle']
-        coll_dict = {'id': coll_id, 'uuid': uuid,
-                     'name': name, 'handle': handle}
-        all_items.append(coll_dict)
-    results = r['page']
-    print(results)
-    totalElements = results['totalElements']
-    print(totalElements)
-    next_list.clear()
-    links = r.get('_links')
-    nextDict = links.get('next')
-    if nextDict:
-        next_link = nextDict.get('href')
-        next_list.append(next_link)
-    else:
-        break
+def get_paginated_data(endpoint, size, timeout):
+    """generator function for paginated search results
+    uses the "next" links within the returned data
+    """
+    while endpoint:
+        r = requests.get(endpoint, timeout=timeout, params={"size": size})
+        if r.status_code == 200:
+            data = r.json()
 
-all_items = pd.DataFrame.from_dict(all_items)
-all_items.to_csv('allCollectionItems.csv', index=False)
+            # print "Page X of Y"
+            page_data = data["page"]
+            num = page_data["number"] + 1
+            total = page_data["totalPages"]
+            print(f"Page {num} of {total}")
+            # on the last iteration, print total element count
+            if num == total:
+                print(f"Total elements: {page_data['totalElements']}")
+
+            yield data
+
+            # get next page
+            next_link = data["_links"].get("next")
+            endpoint = next_link["href"] if next_link else None
+
+
+if __name__ == "__main__":
+    main()
