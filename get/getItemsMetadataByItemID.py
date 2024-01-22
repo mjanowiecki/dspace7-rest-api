@@ -4,6 +4,8 @@
         * lists one or more item UUIDs in a column labeled "uuid", OR
         * lists one or more item handles in a column labeled "handle"
 
+    If both identifiers are present, "uuid" will be used.
+
 """
 
 import argparse
@@ -30,10 +32,13 @@ def main():
     all_items = []
     for index, row in df.iterrows():
         if row.get("uuid"):
-            r = get_by_uuid(row["uuid"], BASE_URL)
+            item_id = row["uuid"]
+            r = get_by_uuid(item_id, BASE_URL)
         elif row.get("handle"):
-            r = get_by_handle(row["handle"], BASE_URL)
+            item_id = row["handle"]
+            r = get_by_handle(item_id, BASE_URL)
         if r.status_code == 200:
+            print(index, item_id)
             item_dict = json_to_flat_dict(r.json())
             all_items.append(item_dict)
         # TODO: error handling for timeouts and non-200 statuses
