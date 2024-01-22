@@ -1,47 +1,53 @@
 import requests
 import pandas as pd
 
-header = {'content-type': 'application/json'}
-baseURL = 'https://j10p-stage.library.jhu.edu'
-endpoint = '/server/api/core/communities'
-pagination = '?size=100'
+
+def main():
+    base_url = "https://j10p-stage.library.jhu.edu"
+    endpoint = f"{base_url}/server/api/core/communities"
+    timeout = 10
+    size = 100
+
+    all_items = []
+    for page in get_paginated_data(endpoint, size, timeout):
+        for community in page["_embedded"]["communities"]:
+            community_dict = {
+                "id": community["id"],
+                "uuid": community["uuid"],
+                "name": community["name"],
+                "handle": community["handle"]
+            }
+            all_items.append(community_dict)
+
+    all_items = pd.DataFrame.from_dict(all_items)
+    all_items.to_csv("allCommunities.csv", index=False)
 
 
-all_items = []
-more_links = True
-next_list = []
-while more_links:
-    if not next_list:
-        full_link = baseURL+endpoint+pagination
-        r = requests.get(full_link, headers=header).json()
-        results = r['page']
-        totalElements = results['totalElements']
-        print('Total elements: {}.'.format(totalElements))
-    else:
-        next_link = next_list[0]
-        r = requests.get(next_link).json()
-    communities = r['_embedded']['communities']
-    for community in communities:
-        comm_id = community['id']
-        uuid = community['uuid']
-        name = community['name']
-        handle = community['handle']
-        comm_dict = {'id': comm_id, 'uuid': uuid,
-                     'name': name, 'handle': handle}
-        all_items.append(comm_dict)
-    results = r['page']
-    totalPage = results['totalPages']
-    number = results['number']
-    number = number + 1
-    print('Page {} of {}.'.format(number, totalPage))
-    next_list.clear()
-    links = r.get('_links')
-    nextDict = links.get('next')
-    if nextDict:
-        next_link = nextDict.get('href')
-        next_list.append(next_link)
-    else:
-        break
+def get_paginated_data(endpoint, size, timeout):
+    """generator function for paginated data
+    uses the "next" links within the returned data
+    """
+    while endpoint:
+        r = requests.get(endpoint, timeout=timeout, params={"size": size})
+        if r.status_code == 200:
+            data = r.json()
 
-all_items = pd.DataFrame.from_dict(all_items)
-all_items.to_csv('allCommunityItems.csv', index=False)
+            # print "Page X of Y"
+            page_data = data["page"]
+            num = page_data["number"] + 1
+            total = page_data["totalPages"]
+            print(f"Page {num} of {total}")
+            # on the last iteration, print total element count
+            if num == total:
+                print(f"Total elements: {page_data['totalElements']}")
+
+            yield data
+
+            # get next page
+            next_link = data["_links"].get("next")
+            endpoint = next_link["href"] if next_link else None
+
+
+
+if __name__ == "__main__":
+    main()

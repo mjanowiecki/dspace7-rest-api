@@ -28,7 +28,7 @@ def main():
 
 
 def get_paginated_data(endpoint, size, timeout):
-    """generator function for paginated search results
+    """generator function for paginated data
     uses the "next" links within the returned data
     """
     while endpoint:
