@@ -12,50 +12,68 @@ def get_paginated_data(endpoint, size, timeout):
     /api/discover/search/, use get_paginated_search_results
 
     """
-    while endpoint:
-        r = requests.get(endpoint, timeout=timeout, params={"size": size})
-        if r.status_code == 200:
-            data = r.json()
+    # open session
+    with requests.Session() as session:
+        session.timeout = timeout
+        session.params = {"size": size}
 
-            # print "Page X of Y"
-            page_data = data["page"]
-            num = page_data["number"] + 1
-            total = page_data["totalPages"]
-            print(f"Page {num} of {total}")
-            # on the last iteration, print total element count
-            if num == total:
-                print(f"Total elements: {page_data['totalElements']}")
+        # make paginated requests
+        while endpoint:
+            r = session.get(endpoint)
+            if r.status_code == 200:
+                data = r.json()
 
-            yield data
+                # print "Page X of Y"
+                page_data = data["page"]
+                num = page_data["number"] + 1
+                total = page_data["totalPages"]
+                print(f"Page {num} of {total}")
+                # on the last iteration, print total element count
+                if num == total:
+                    print(f"Total elements: {page_data['totalElements']}")
 
-            # get next page
-            next_link = data["_links"].get("next")
-            endpoint = next_link["href"] if next_link else None
+                # return data from the page
+                yield data
+
+                # get next page
+                next_link = data["_links"].get("next")
+                endpoint = next_link["href"] if next_link else None
 
 
 def get_paginated_search_results(endpoint, size, timeout):
     """generator function for paginated search results
     uses the "next" links within the returned data
+
+    For use with endpoints that return search results,
+    /api/discover/search/
+
     """
-    while endpoint:
-        r = requests.get(endpoint, timeout=timeout, params={"size": size})
-        if r.status_code == 200:
-            data = r.json()
+    # open session
+    with requests.Session() as session:
+        session.timeout = timeout
+        session.params = {"size": size}
 
-            # print "Page X of Y"
-            page_data = data["_embedded"]["searchResult"]["page"]
-            num = page_data["number"] + 1
-            total = page_data["totalPages"]
-            print(f"Page {num} of {total}")
-            # on the last iteration, print total element count
-            if num == total:
-                print(f"Total elements: {page_data['totalElements']}")
+        # make paginated requests
+        while endpoint:
+            r = session.get(endpoint)
+            if r.status_code == 200:
+                data = r.json()
 
-            yield data
+                # print "Page X of Y"
+                page_data = data["_embedded"]["searchResult"]["page"]
+                num = page_data["number"] + 1
+                total = page_data["totalPages"]
+                print(f"Page {num} of {total}")
+                # on the last iteration, print total element count
+                if num == total:
+                    print(f"Total elements: {page_data['totalElements']}")
 
-            # get next page
-            next_link = data["_embedded"]["searchResult"]["_links"].get("next")
-            endpoint = next_link["href"] if next_link else None
+                # return data from the page
+                yield data
+
+                # get next page
+                next_link = data["_embedded"]["searchResult"]["_links"].get("next")
+                endpoint = next_link["href"] if next_link else None
 
 
 def json_to_flat_dict(item):
