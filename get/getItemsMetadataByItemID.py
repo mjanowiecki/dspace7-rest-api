@@ -31,37 +31,39 @@ def main():
     # iterate over input csv
     df = pd.read_csv(filename)
     all_items = []
-    for index, row in df.iterrows():
-        if row.get("uuid"):
-            item_id = row["uuid"]
-            r = get_by_uuid(item_id, BASE_URL)
-        elif row.get("handle"):
-            item_id = row["handle"]
-            r = get_by_handle(item_id, BASE_URL)
-        if r.status_code == 200:
-            print(index, item_id)
-            item_dict = json_to_flat_dict(r.json())
-            all_items.append(item_dict)
-        # TODO: error handling for timeouts and non-200 statuses
+    with requests.Session() as session:
+        session.timeout = TIMEOUT
+        for index, row in df.iterrows():
+            if row.get("uuid"):
+                item_id = row["uuid"]
+                r = get_by_uuid(item_id, session)
+            elif row.get("handle"):
+                item_id = row["handle"]
+                r = get_by_handle(item_id, session)
+            if r.status_code == 200:
+                print(index, item_id)
+                item_dict = json_to_flat_dict(r.json())
+                all_items.append(item_dict)
+            # TODO: error handling for timeouts and non-200 statuses
 
     # output csv
     all_items = pd.DataFrame.from_dict(all_items)
     all_items.to_csv("item_metadata.csv", index=False)
 
 
-def get_by_uuid(uuid, base_url=BASE_URL, timeout=TIMEOUT):
+def get_by_uuid(uuid, session, base_url=BASE_URL):
     """retrieve a DSpace item by its uuid
     returns requests object
     """
-    return requests.get(f"{base_url}/server/api/core/items/{uuid}", timeout=timeout)
+    return session.get(f"{base_url}/server/api/core/items/{uuid}")
 
 
-def get_by_handle(handle, base_url=BASE_URL, timeout=TIMEOUT):
+def get_by_handle(handle, session, base_url=BASE_URL):
     """retrieve a DSpace item by its handle identifier
     returns requests object
     """
-    return requests.get(
-        f"{base_url}/server/api/pid/find", params={"id": handle}, timeout=timeout
+    return session.get(
+        f"{base_url}/server/api/pid/find", params={"id": handle}
     )
 
 
