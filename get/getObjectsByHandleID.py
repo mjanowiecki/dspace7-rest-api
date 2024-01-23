@@ -1,7 +1,7 @@
 import argparse
 import requests
 import pandas as pd
-
+from get_utils import json_to_flat_dict
 
 def main():
     # parse command line arguments
@@ -35,20 +35,6 @@ def main():
 
     all_items = pd.DataFrame.from_dict(all_items)
     all_items.to_csv("handle_metadata.csv", index=False)
-
-
-def json_to_flat_dict(item):
-    """
-    take JSON item with nested/multi-value fields returned from DSpace 7 API
-
-    return a dict with a flat structure. where a field has multiple values,
-    these values are concatenated separated by a pipe character.
-    """
-    item_dict = {"uuid": item["uuid"]}
-    for fieldname, field_values in item["metadata"].items():
-        str_value = "|".join([i["value"] for i in field_values])
-        item_dict[fieldname] = str_value
-    return item_dict
 
 
 if __name__ == "__main__":
