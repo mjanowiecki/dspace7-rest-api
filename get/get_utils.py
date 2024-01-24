@@ -1,3 +1,12 @@
+""" Functions useful for making GET requests to the DSpace 7 REST API,
+    designed to be imported into other scripts.
+
+    * Get paginated objects and search results
+    * Process returned metadata: join the values of multi-value fields into a
+      "|"-separated string for CSV output
+
+"""
+
 import requests
 
 
