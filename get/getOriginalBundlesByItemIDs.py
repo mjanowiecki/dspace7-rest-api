@@ -1,10 +1,21 @@
 import pandas as pd
 from get_utils import get_paginated_data
 from datetime import datetime
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-f', '--file')
+args = parser.parse_args()
+
+if args.file:
+    filename = args.file
+else:
+    filename = input('Enter filename (including \'.csv\'): ')
+
 
 scriptStart = datetime.now()
 
-df = pd.read_csv('allCollectionItems.csv')
+df = pd.read_csv(filename)
 
 
 def main():
@@ -15,7 +26,7 @@ def main():
 
     all_items = []
     for count, row in df.iterrows():
-        item_uuid = row['uuid']
+        item_uuid = row['js_uuid']
         endpoint = f"{base_url}/server/api/core/items/{item_uuid}/bundles"
         print(count, item_uuid)
         for page in get_paginated_data(endpoint, size, timeout):

@@ -155,3 +155,8 @@ cython_debug/
 .idea
 *.csv
 get/secret.py
+get/secretProd.py
+post/secret.py
+post/secretProd.py
+delete/secret.py
+delete/secretProd.py

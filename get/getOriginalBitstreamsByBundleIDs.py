@@ -4,7 +4,7 @@ from datetime import datetime
 
 scriptStart = datetime.now()
 
-df = pd.read_csv('test.csv')
+df = pd.read_csv('originalBundlesByItemIDs.csv')
 
 
 def main():

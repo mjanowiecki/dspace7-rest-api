@@ -13,9 +13,9 @@ def main():
 
     # this example collection is the Baltimore City Sheet Maps collection
     # expecting 427 items
-    collection_uuids = ["7e692697-d553-4887-8404-61a0821e42b8"]
+    collection_uuids = ["45794375-6640-4efe-848e-082e60bae375"]
 
-    base_url = "https://j10p-stage.library.jhu.edu"
+    base_url = "https://jscholarship.library.jhu.edu"
     timeout = 10
     size = 100
 
