@@ -9,8 +9,10 @@ from dspace_rest_client.client import DSpaceClient
 from dspace_rest_client.models import Item, Bundle
 from authenticateToDSpace import authenticate_to_dspace
 import os
-from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
+import requests
+from requests_toolbelt import MultipartEncoder
 from tqdm import tqdm
+from tqdm.utils import CallbackIOWrapper
 from http.client import HTTPConnection
 
 HTTPConnection.__init__.__defaults__ = tuple(
@@ -45,16 +47,9 @@ else:
 
 file_directory = '/Users/michelle/Desktop/science_review'
 parent = '1bddfd96-c851-445a-89ce-caaa433dbdf3'
-# Authenticate to DSpace site, get token
-d = DSpaceClient(api_endpoint=base_url, username=user, password=password, fake_user_agent=False)
 
-# Authenticate against the DSpace client
-authenticated = d.authenticate()
-if not authenticated:
-    print(f'Error logging in! Giving up.')
-    exit(1)
-
-fields_with_language = ['dc.description.abstract', 'dc.description.provenance', 'dc.title',
+fields_with_language = ['dc.description', 'dc.description.abstract',
+                        'dc.description.provenance', 'dc.title',
                         'dc.title.alternative', 'dc.relation.ispartofseries', 'dc.rights',
                         'dc.type', 'dc.subject', 'dc.relation']
 
@@ -75,12 +70,25 @@ def create_bitstream(uuid_bundle, f_name, mimetype, file_location):
                   'bundleName': 'ORIGINAL'}
     with open(file_location, 'rb') as f:
         with tqdm(total=file_size, unit="B", unit_scale=True, unit_divisor=1024) as bar:
-            e = MultipartEncoder({'properties': json.dumps(properties) + ';application/json',
-                                  'file': (f_name, f, mimetype)})
-            watch = MultipartEncoderMonitor(e, lambda monitor: bar.update(monitor.bytes_read - bar.n))
-            session.headers.update({"Content-Type": watch.content_type})
-            bitstream = session.post(bitstream_url, data=watch, headers=headers, timeout=3)
-    return bitstream
+            wrapped_file = CallbackIOWrapper(bar.update, f, "read")
+            e = MultipartEncoder({'properties': json.dumps(properties)+';application/json',
+                                  'file': (f_name, wrapped_file, mimetype)})
+            session.headers.update({"Content-Type": e.content_type})
+            try:
+                response = session.post(bitstream_url, data=e, headers=headers, timeout=30)
+                if response.status_code == 201:
+                    response = response.json()
+                else:
+                    print(response.status_code)
+                    response = None
+            except requests.exceptions.RequestException:
+                all_bitstreams = session.get(bitstream_url).json()
+                bitstreams = all_bitstreams['_embedded']['bitstreams']
+                if bitstreams:
+                    response = bitstreams[0]
+                else:
+                    response = None
+    return response
 
 
 def create_metadata(field_name, value):
@@ -103,12 +111,23 @@ fields.remove('bitstream')
 
 all_items = []
 for count, row in df.iterrows():
-    print('')
+    count = count + 1
     row = row.copy()
-    dt = datetime.now().strftime('%Y-%m-%d %H.%M.%S')
+
+    # Authenticate to DSpace site, get token
+    d = DSpaceClient(api_endpoint=base_url, username=user, password=password,
+                     fake_user_agent=False)
+
+    # Authenticate against the DSpace client
+    authenticated = d.authenticate()
+    if not authenticated:
+        print(f'Error logging in! Giving up.')
+        exit(1)
+
     name = row['dc.title']
     file_name = row['bitstream']
     print(count, name)
+
     # Format metadata to meet JSON requirements.
     item_data = {"name": name,
                  "inArchive": True,
@@ -121,6 +140,7 @@ for count, row in df.iterrows():
         if pd.notna(field_value):
             formatted_value = create_metadata(field, field_value)
             metadata[field] = formatted_value
+    dt = datetime.now().strftime('%Y-%m-%d %H.%M.%S')
     provNoteValue = "Submitted by " + user + " on " + dt + " (EST)."
     metadata["dc.description.provenance"] = [{'value': provNoteValue,
                                               "language": "en",
@@ -159,11 +179,12 @@ for count, row in df.iterrows():
     file_path = os.path.join(file_directory, file_name)
     mime_type = mimetypes.guess_type(file_path)
     new_bitstream = create_bitstream(new_bundle.uuid, file_name, mime_type, file_path)
-    if new_bitstream.status_code == 201:
-        bitstream_data = new_bitstream.json()
-        bitstream_uuid = bitstream_data['id']
+    if new_bitstream is not None:
+        bitstream_uuid = new_bitstream['id']
+        bitstream_name = new_bitstream['name']
         print('New bitstream created! UUID: {}'.format(bitstream_uuid))
         row['bitstream_created'] = True
+        row['bitstream_name'] = bitstream_name
         row['bitstream_uuid'] = bitstream_uuid
     else:
         print('Error creating bitstream.')
