@@ -158,5 +158,7 @@ get/secret.py
 get/secretProd.py
 post/secret.py
 post/secretProd.py
+put/secret.py
+put/secretProd.py
 delete/secret.py
 delete/secretProd.py
