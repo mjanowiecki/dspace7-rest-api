@@ -6,9 +6,9 @@ import shutil
 
 scriptStart = datetime.now()
 
-df = pd.read_csv('missing.csv')
+df = pd.read_csv('originalBitstreamsByBundleIDs.csv')
 
-destination_folder = '/Users/michelle/Desktop/levy_files'
+destination_folder = '/Users/michelle/Desktop/files_downloaded'
 
 if not os.path.exists(destination_folder):
     os.makedirs(destination_folder)

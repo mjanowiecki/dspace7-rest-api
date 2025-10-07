@@ -28,25 +28,28 @@ def get_paginated_data(endpoint, size, timeout):
 
         # make paginated requests
         while endpoint:
-            r = session.get(endpoint)
-            if r.status_code == 200:
-                data = r.json()
+            try:
+                r = session.get(endpoint)
+                if r.status_code == 200:
+                    data = r.json()
 
-                # print "Page X of Y"
-                page_data = data["page"]
-                num = page_data["number"] + 1
-                total = page_data["totalPages"]
-                print(f"Page {num} of {total}")
-                # on the last iteration, print total element count
-                if num == total:
-                    print(f"Total elements: {page_data['totalElements']}")
+                    # print "Page X of Y"
+                    page_data = data["page"]
+                    num = page_data["number"] + 1
+                    total = page_data["totalPages"]
+                    print(f"Page {num} of {total}")
+                    # on the last iteration, print total element count
+                    if num == total:
+                        print(f"Total elements: {page_data['totalElements']}")
 
-                # return data from the page
-                yield data
+                    # return data from the page
+                    yield data
 
-                # get next page
-                next_link = data["_links"].get("next")
-                endpoint = next_link["href"] if next_link else None
+                    # get next page
+                    next_link = data["_links"].get("next")
+                    endpoint = next_link["href"] if next_link else None
+            except requests.RequestException:
+                pass
 
 
 def get_paginated_search_results(endpoint, size, timeout):
